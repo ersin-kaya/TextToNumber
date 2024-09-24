@@ -1,4 +1,4 @@
-namespace TextToNumber.Models;
+namespace TextToNumber.Models.Responses;
 
 public class ConvertTextToNumberResponse : BaseResponse
 {

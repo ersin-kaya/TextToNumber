@@ -1,4 +1,4 @@
-namespace TextToNumber.Models;
+namespace TextToNumber.Models.Requests;
 
 public class ConvertTextToNumberRequest : BaseRequest
 {
