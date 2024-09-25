@@ -19,19 +19,9 @@ public class ConvertService : IConvertService
     {
         // Kelimeleri tanımlamak için düzenli ifade kullanıyoruz
         string[] words = SplitNumberWords(request.UserText, removeSpaces:true);
-        string[] wordsWithWhiteSpaces = SplitNumberWords(request.UserText, removeSpaces:false);
-        List<object> numberParts = new List<object>();
+        List<object> finalTrimmedWords = new List<object>();
         int currentNumber = 0;
         bool isFirst = false;
-
-        List<object> testResult = new();
-        foreach (string word in wordsWithWhiteSpaces)
-        {
-            if (word != "" && !numberWords.ContainsKey(word))
-            {
-                testResult.Add(word);
-            }
-        }
 
         // Her kelimeyi tek tek kontrol ediyoruz
         for (int i = 0; i < words.Length; i++)
@@ -66,34 +56,52 @@ public class ConvertService : IConvertService
                 // Sayı olmayan kelimeyi ekliyoruz ve önceki sayıyı da ekliyoruz
                 if (currentNumber > 0)
                 {
-                    numberParts.Add(currentNumber);
+                    finalTrimmedWords.Add(currentNumber);
                     currentNumber = 0;
                 }
-
-                numberParts.Add(words[i]);
+                finalTrimmedWords.Add(words[i]);
             }
         }
 
         // Son sayıyı da ekliyoruz
         if (currentNumber > 0)
         {
-            numberParts.Add(currentNumber);
+            finalTrimmedWords.Add(currentNumber);
         }
 
-        foreach (var item in numberParts)
+        List<object> resultingWords = GetResultingWords(userText:request.UserText, trimmedWords: finalTrimmedWords);
+        string resultString = string.Join(" ", resultingWords.ConvertAll(element => element.ToString()));
+
+        return new ConvertTextToNumberResponse { Output = resultString };
+    }
+
+    private List<object> GetNonNumberWords(string[] words)
+    {
+        List<object> nonNumberWords = new();
+        foreach (string word in words)
+        {
+            if (!numberWords.ContainsKey(word) && !string.IsNullOrEmpty(word))
+                nonNumberWords.Add(word);
+            
+        }
+
+        return nonNumberWords;
+    }
+
+    private List<object> GetResultingWords(string userText, List<object> trimmedWords)
+    {
+        List<object> resultingWords = GetNonNumberWords(SplitNumberWords(userText, removeSpaces:false));
+        foreach (var item in trimmedWords)
         {
             if (item is int)
             {
-                testResult.Insert(numberParts.IndexOf(item), item);
+                resultingWords.Insert(trimmedWords.IndexOf(item), item);
             }
         }
 
-        // Listeyi string'e dönüştürüyoruz
-        var result = string.Join(" ", testResult.ConvertAll(element => element.ToString()));
-
-        return new ConvertTextToNumberResponse { Output = result };
+        return resultingWords;
     }
-
+    
     // Bitişik yazılmış sayı kelimelerini ayrıştıran fonksiyon
     private string[] SplitNumberWords(string input, bool removeSpaces)
     {
