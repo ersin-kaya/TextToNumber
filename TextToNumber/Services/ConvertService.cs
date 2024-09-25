@@ -18,8 +18,8 @@ public class ConvertService : IConvertService
     public ConvertTextToNumberResponse ConvertTextToNumber(ConvertTextToNumberRequest request)
     {
         // Kelimeleri tanımlamak için düzenli ifade kullanıyoruz
-        string[] words = SplitNumberWords(request.UserText.Replace(" ", ""));
-        string[] wordsWithWhiteSpaces = SplitNumberWords(request.UserText);
+        string[] words = SplitNumberWords(request.UserText, removeSpaces:true);
+        string[] wordsWithWhiteSpaces = SplitNumberWords(request.UserText, removeSpaces:false);
         List<object> numberParts = new List<object>();
         int currentNumber = 0;
         bool isFirst = false;
@@ -95,8 +95,11 @@ public class ConvertService : IConvertService
     }
 
     // Bitişik yazılmış sayı kelimelerini ayrıştıran fonksiyon
-    private string[] SplitNumberWords(string input)
+    private string[] SplitNumberWords(string input, bool removeSpaces)
     {
+        if (removeSpaces)
+            input = input.Replace(" ", "");
+
         // Türkçe'de sayıları tanımlayan düzenli ifadeleri kullanarak bitişik yazılmışları buluyoruz
         string pattern =
             @"bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan|yüz|bin";
