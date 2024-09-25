@@ -105,7 +105,7 @@ public class ConvertService : IConvertService
         int lastIndex = 0;
 
         // Bitişik yazılmış sayıları bulup ayırıyoruz
-        foreach (Match match in regex.Matches(input))
+        foreach (Match match in regex.Matches(input.ToLower()))
         {
             if (match.Index > lastIndex)
             {
