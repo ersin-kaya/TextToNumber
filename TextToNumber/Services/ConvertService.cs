@@ -16,81 +16,114 @@ public class ConvertService : IConvertService
     };
 
     public ConvertTextToNumberResponse ConvertTextToNumber(ConvertTextToNumberRequest request)
-	{
-		// Kelimeleri tanımlamak için düzenli ifade kullanıyoruz
-		string[] words = SplitNumberWords(request.UserText.Replace(" ", ""));
-		List<object> numberParts = new List<object>();
-		int currentNumber = 0;
+    {
+        // Kelimeleri tanımlamak için düzenli ifade kullanıyoruz
+        string[] words = SplitNumberWords(request.UserText.Replace(" ", ""));
+        string[] wordsWithWhiteSpaces = SplitNumberWords(request.UserText);
+        List<object> numberParts = new List<object>();
+        int currentNumber = 0;
+        bool isFirst = false;
 
-		// Her kelimeyi tek tek kontrol ediyoruz
-		for (int i = 0; i < words.Length; i++)
-		{
-			// Eğer kelime sayı ise sayıya çeviriyoruz
-			if (numberWords.ContainsKey(words[i].ToLower()))
-			{
-				int value = numberWords[words[i].ToLower()];
+        List<object> testResult = new();
+        foreach (string word in wordsWithWhiteSpaces)
+        {
+            if (word != "" && !numberWords.ContainsKey(word))
+            {
+                testResult.Add(word);
+            }
+        }
 
-				if (value == 100 || value == 1000)
-				{
-					if (currentNumber == 0)
-						currentNumber = 1;
-					currentNumber *= value;
-				}
-				else
-				{
-					currentNumber += value;
-				}
-			}
-			else
-			{
-				// Sayı olmayan kelimeyi ekliyoruz ve önceki sayıyı da ekliyoruz
-				if (currentNumber > 0)
-				{
-					numberParts.Add(currentNumber);
-					currentNumber = 0;
-				}
-				numberParts.Add(words[i]);
-			}
-		}
+        // Her kelimeyi tek tek kontrol ediyoruz
+        for (int i = 0; i < words.Length; i++)
+        {
+            // Eğer kelime sayı ise sayıya çeviriyoruz
+            if (numberWords.ContainsKey(words[i].ToLower()))
+            {
+                int value = numberWords[words[i].ToLower()];
 
-		// Son sayıyı da ekliyoruz
-		if (currentNumber > 0)
-		{
-			numberParts.Add(currentNumber);
-		}
+                if (value == 100 || value == 1000)
+                {
+                    if (!isFirst)
+                    {
+                        isFirst = true;
+                        if (currentNumber == 0)
+                            currentNumber = 1;
+                        currentNumber *= value;
+                    }
+                    else
+                    {
+                        int previousValue = numberWords[words[i - 1].ToLower()];
+                        currentNumber += value * previousValue - previousValue;
+                    }
+                }
+                else
+                {
+                    currentNumber += value;
+                }
+            }
+            else
+            {
+                // Sayı olmayan kelimeyi ekliyoruz ve önceki sayıyı da ekliyoruz
+                if (currentNumber > 0)
+                {
+                    numberParts.Add(currentNumber);
+                    currentNumber = 0;
+                }
 
-		// Listeyi string'e dönüştürüyoruz
-		return new ConvertTextToNumberResponse { Output =  string.Join(" ", numberParts.ConvertAll(element => element.ToString()))};
-	}
+                numberParts.Add(words[i]);
+            }
+        }
 
-	// Bitişik yazılmış sayı kelimelerini ayrıştıran fonksiyon
-	private string[] SplitNumberWords(string input)
-	{
-		// Türkçe'de sayıları tanımlayan düzenli ifadeleri kullanarak bitişik yazılmışları buluyoruz
-		string pattern = @"bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan|yüz|bin";
-		Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
-		List<string> splitWords = new List<string>();
-		int lastIndex = 0;
+        // Son sayıyı da ekliyoruz
+        if (currentNumber > 0)
+        {
+            numberParts.Add(currentNumber);
+        }
 
-		// Bitişik yazılmış sayıları bulup ayırıyoruz
-		foreach (Match match in regex.Matches(input))
-		{
-			if (match.Index > lastIndex)
-			{
-				// Kelime olmayan kısmı ayırıyoruz
-				splitWords.Add(input.Substring(lastIndex, match.Index - lastIndex).Trim());
-			}
-			// Sayı kelimesini ekliyoruz
-			splitWords.Add(match.Value);
-			lastIndex = match.Index + match.Length;
-		}
+        foreach (var item in numberParts)
+        {
+            if (item is int)
+            {
+                testResult.Insert(numberParts.IndexOf(item), item);
+            }
+        }
 
-		// Kalan kısmı ekliyoruz
-		if (lastIndex < input.Length)
-		{
-			splitWords.Add(input.Substring(lastIndex).Trim());
-		}
+        // Listeyi string'e dönüştürüyoruz
+        var result = string.Join(" ", testResult.ConvertAll(element => element.ToString()));
 
-		return splitWords.ToArray();
-	}
+        return new ConvertTextToNumberResponse { Output = result };
+    }
+
+    // Bitişik yazılmış sayı kelimelerini ayrıştıran fonksiyon
+    private string[] SplitNumberWords(string input)
+    {
+        // Türkçe'de sayıları tanımlayan düzenli ifadeleri kullanarak bitişik yazılmışları buluyoruz
+        string pattern =
+            @"bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan|yüz|bin";
+        Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
+        List<string> splitWords = new List<string>();
+        int lastIndex = 0;
+
+        // Bitişik yazılmış sayıları bulup ayırıyoruz
+        foreach (Match match in regex.Matches(input))
+        {
+            if (match.Index > lastIndex)
+            {
+                // Kelime olmayan kısmı ayırıyoruz
+                splitWords.Add(input.Substring(lastIndex, match.Index - lastIndex).Trim());
+            }
+
+            // Sayı kelimesini ekliyoruz
+            splitWords.Add(match.Value);
+            lastIndex = match.Index + match.Length;
+        }
+
+        // Kalan kısmı ekliyoruz
+        if (lastIndex < input.Length)
+        {
+            splitWords.Add(input.Substring(lastIndex).Trim());
+        }
+
+        return splitWords.ToArray();
+    }
 }
