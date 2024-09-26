@@ -31,7 +31,7 @@ public class ConvertService : IConvertService
             {
                 int value = numberWords[words[i].ToLower()];
 
-                if (value == 100 || value == 1000)
+                if (value % 100 == 0)
                 {
                     if (!isFirst)
                     {
@@ -65,9 +65,7 @@ public class ConvertService : IConvertService
 
         // Son sayıyı da ekliyoruz
         if (currentNumber > 0)
-        {
             finalTrimmedWords.Add(currentNumber);
-        }
 
         List<object> resultingWords = GetResultingWords(userText:request.UserText, trimmedWords: finalTrimmedWords);
         string resultString = string.Join(" ", resultingWords.ConvertAll(element => element.ToString()));
@@ -82,7 +80,6 @@ public class ConvertService : IConvertService
         {
             if (!numberWords.ContainsKey(word) && !string.IsNullOrEmpty(word))
                 nonNumberWords.Add(word);
-            
         }
 
         return nonNumberWords;
@@ -94,9 +91,7 @@ public class ConvertService : IConvertService
         foreach (var item in trimmedWords)
         {
             if (item is int)
-            {
                 resultingWords.Insert(trimmedWords.IndexOf(item), item);
-            }
         }
 
         return resultingWords;
