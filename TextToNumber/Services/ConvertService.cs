@@ -33,6 +33,13 @@ public class ConvertService : IConvertService
 
                 if (value % 100 == 0)
                 {
+                    /*
+                        Bir sayıda hem 'bin' hem de 'yüz' ifadeleri geçiyorsa örn. iki bin sekiz yüz (2800),
+                        currentNumber'ı hem 1000 hem 100 ile çarptığımızda hatalı bir hesaplama yapmış oluyoruz,
+                        bu hesaplama hatasını isFirst isimli bir flag kullanarak düzelttim,
+                        fakat 'bin' ifadesinden önce 'yüz' ifadesi kullanılırsa
+                        yine hatalı bir sonuca sebep oluyor, bu logic değişecek... 
+                    */
                     if (!isFirst)
                     {
                         isFirst = true;
@@ -43,7 +50,12 @@ public class ConvertService : IConvertService
                     else
                     {
                         int previousValue = numberWords[words[i - 1].ToLower()];
-                        currentNumber += value * previousValue - previousValue;
+                        currentNumber += value * previousValue - previousValue; 
+                        /*
+                            Bu logic ile, örn. iki bin sekiz yüz (2800) ifadesi hesaplanırken
+                            öncelikle 2008 değeri elde edildiği için, sonradan gelen 'bin', 'yüz' gibi ifadelerin
+                            hatalı sonuca sebep olmasının önüne geçiyorum
+                        */ 
                     }
                 }
                 else
