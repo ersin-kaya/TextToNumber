@@ -21,7 +21,8 @@ public class ConvertService : IConvertService
         string[] words = SplitNumberWords(request.UserText, removeSpaces:true);
         List<object> finalTrimmedWords = new List<object>();
         int currentNumber = 0;
-        bool isFirst = false;
+        bool isThousandUsed = false;
+        bool isHundredUsed = false;
 
         // Her kelimeyi tek tek kontrol ediyoruz
         for (int i = 0; i < words.Length; i++)
@@ -33,16 +34,20 @@ public class ConvertService : IConvertService
 
                 if (value % 100 == 0)
                 {
+                    if (!isHundredUsed)
+                        isHundredUsed = value == 100;
+                    if (!isThousandUsed)
+                        isThousandUsed = value == 1000;
                     /*
                         Bir sayıda hem 'bin' hem de 'yüz' ifadeleri geçiyorsa örn. iki bin sekiz yüz (2800),
                         currentNumber'ı hem 1000 hem 100 ile çarptığımızda hatalı bir hesaplama yapmış oluyoruz,
                         bu hesaplama hatasını isFirst isimli bir flag kullanarak düzelttim,
                         fakat 'bin' ifadesinden önce 'yüz' ifadesi kullanılırsa
-                        yine hatalı bir sonuca sebep oluyor, bu logic değişecek... 
+                        yine hatalı bir sonuca sebep oluyor, bu logic değişecek...
+                        Not: isFirst isimli flag'i kaldırıp, isHundredUsed ve isThousandUsed isimli flag'leri ekleyip hatalı hesaplamanın önüne geçildi
                     */
-                    if (!isFirst)
+                    if (isThousandUsed && !isHundredUsed)
                     {
-                        isFirst = true;
                         if (currentNumber == 0)
                             currentNumber = 1;
                         currentNumber *= value;
