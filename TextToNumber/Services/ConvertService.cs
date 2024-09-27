@@ -18,11 +18,16 @@ public class ConvertService : IConvertService
     public ConvertTextToNumberResponse ConvertTextToNumber(ConvertTextToNumberRequest request)
     {
         // Kelimeleri tanımlamak için düzenli ifade kullanıyoruz
-        string[] words = SplitNumberWords(request.UserText, removeSpaces:true);
+        string[] words = SplitNumberWords(request.UserText, removeSpaces: true);
         List<object> finalTrimmedWords = new List<object>();
         int currentNumber = 0;
         bool isThousandUsed = false;
         bool isHundredUsed = false;
+        bool isThousandFirst = false; // Cümlede 'bin' ve 'yüz' ifadelerinden hangisinin önce bulunduğuna dair flag
+        int numberCount = 0; // Sayının yalnızca 'bin yüz' ve 'yüz bin' olduğu durumların kontrolü için tanımlandı
+                             // Sayı bunlardan birisi değilse, örn. 2800 olsun,
+                             // Hesaplama işlemi yapılırken önce 2008 elde edileceğinden,
+                             // Sonraki adımda 8 değil de 800 olduğu anlaşıldığında 8 değerinin sayıdan çıkartılması gerekiyor
 
         // Her kelimeyi tek tek kontrol ediyoruz
         for (int i = 0; i < words.Length; i++)
@@ -30,6 +35,7 @@ public class ConvertService : IConvertService
             // Eğer kelime sayı ise sayıya çeviriyoruz
             if (numberWords.ContainsKey(words[i].ToLower()))
             {
+                numberCount++;
                 int value = numberWords[words[i].ToLower()];
 
                 if (value % 100 == 0)
@@ -38,6 +44,9 @@ public class ConvertService : IConvertService
                         isHundredUsed = value == 100;
                     if (!isThousandUsed)
                         isThousandUsed = value == 1000;
+
+                    if (value != 100 && !isHundredUsed) // (Sayı 1000 ise ve önceden 100 kullanılmamışsa)
+                        isThousandFirst = true;         // 1000 önce kullanılacak demektir, bu flag false kalırsa önce 100 kullanılmış demektir
                     /*
                         Bir sayıda hem 'bin' hem de 'yüz' ifadeleri geçiyorsa örn. iki bin sekiz yüz (2800),
                         currentNumber'ı hem 1000 hem 100 ile çarptığımızda hatalı bir hesaplama yapmış oluyoruz,
@@ -46,21 +55,29 @@ public class ConvertService : IConvertService
                         yine hatalı bir sonuca sebep oluyor, bu logic değişecek...
                         Not: isFirst isimli flag'i kaldırıp, isHundredUsed ve isThousandUsed isimli flag'leri ekleyip hatalı hesaplamanın önüne geçildi
                     */
-                    if (isThousandUsed && !isHundredUsed)
+                    if (isHundredUsed && !isThousandUsed)
                     {
                         if (currentNumber == 0)
                             currentNumber = 1;
                         currentNumber *= value;
                     }
-                    else
+                    else if (!isHundredUsed && isThousandUsed)
                     {
-                        int previousValue = numberWords[words[i - 1].ToLower()];
-                        currentNumber += value * previousValue - previousValue; 
-                        /*
-                            Bu logic ile, örn. iki bin sekiz yüz (2800) ifadesi hesaplanırken
-                            öncelikle 2008 değeri elde edildiği için, sonradan gelen 'bin', 'yüz' gibi ifadelerin
-                            hatalı sonuca sebep olmasının önüne geçiyorum
-                        */ 
+                        if (currentNumber == 0)
+                            currentNumber = 1;
+                        currentNumber *= value;
+                    }
+                    else if (isHundredUsed && isThousandUsed)
+                    {
+                        if (numberCount == 2) 
+                            currentNumber = isThousandFirst
+                                ? currentNumber += value
+                                : currentNumber *= value;
+                        else
+                        {
+                            int previousValue = numberWords[words[i - 1].ToLower()];
+                            currentNumber += value * previousValue - previousValue;
+                        }
                     }
                 }
                 else
@@ -76,6 +93,7 @@ public class ConvertService : IConvertService
                     finalTrimmedWords.Add(currentNumber);
                     currentNumber = 0;
                 }
+
                 finalTrimmedWords.Add(words[i]);
             }
         }
@@ -84,7 +102,7 @@ public class ConvertService : IConvertService
         if (currentNumber > 0)
             finalTrimmedWords.Add(currentNumber);
 
-        List<object> resultingWords = GetResultingWords(userText:request.UserText, trimmedWords: finalTrimmedWords);
+        List<object> resultingWords = GetResultingWords(userText: request.UserText, trimmedWords: finalTrimmedWords);
         string resultString = string.Join(" ", resultingWords.ConvertAll(element => element.ToString()));
 
         return new ConvertTextToNumberResponse { Output = resultString };
@@ -104,7 +122,7 @@ public class ConvertService : IConvertService
 
     private List<object> GetResultingWords(string userText, List<object> trimmedWords)
     {
-        List<object> resultingWords = GetNonNumberWords(SplitNumberWords(userText, removeSpaces:false));
+        List<object> resultingWords = GetNonNumberWords(SplitNumberWords(userText, removeSpaces: false));
         foreach (var item in trimmedWords)
         {
             if (item is int)
@@ -113,7 +131,7 @@ public class ConvertService : IConvertService
 
         return resultingWords;
     }
-    
+
     // Bitişik yazılmış sayı kelimelerini ayrıştıran fonksiyon
     private string[] SplitNumberWords(string input, bool removeSpaces)
     {
