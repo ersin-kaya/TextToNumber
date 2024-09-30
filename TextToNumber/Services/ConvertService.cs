@@ -55,7 +55,7 @@ public class ConvertService : IConvertService
                         yine hatalı bir sonuca sebep oluyor, bu logic değişecek...
                         Not: isFirst isimli flag'i kaldırıp, isHundredUsed ve isThousandUsed isimli flag'leri ekleyip hatalı hesaplamanın önüne geçildi
                     */
-                    if ((isHundredUsed && !isThousandUsed) || (!isHundredUsed && isThousandUsed))
+                    if (isHundredUsed != isThousandUsed) // yalnızca birisi kullanıldıysa. != yerine XOR'da kullanılabilir (^)
                     {
                         if (currentNumber == 0)
                             currentNumber = 1;
